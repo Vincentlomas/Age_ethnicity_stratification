@@ -337,7 +337,7 @@ for i in range(num_age_groups):
 fig, axes = plt.subplots(num_ethnic_groups,num_age_groups,figsize=(30, 10))
 axes = axes.flatten()
 for i in range(num_age_groups*num_ethnic_groups):
-    axes[i].set_title(f'Age group {i%5+1}, Ethnic group[i//2+1]')
+    axes[i].set_title(f'Age group {i%5+1}, Ethnic group{i//2+1}')
     axes[i].plot(F_vals,scen_4_F_var_attack_rates[(8+i),:], label="Scenario 4")
     axes[i].plot(F_vals,scen_5_F_var_attack_rates[(8+i),:], label="Scenario 5")
     axes[i].legend()
