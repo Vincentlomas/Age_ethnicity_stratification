@@ -156,6 +156,33 @@ def initial_group_populations(pop_vec,is_vacc,pop_vec_vacc=np.array([]),initial_
 
 
 
+def initial_reproduction_number(C = None, P = None,N_vec_vacc=None,N_vec = None, gamma=-1):
+    
+    if P is None and C is None:
+        raise Exception("Provide either a per capita contact matrix (P) or a contact matrix (C)")
+    elif C is None and N_vec is None:
+        raise Exception("If providing a per capita matrix, a population vector is needed")
+    elif gamma == -1:
+        raise Exception("Provide a value for gamma")
+    
+    if C is None:
+        C = np.zeros(np.shape(P))
+        for j in range(len(N_vec)):
+            C[:,j] = P[:,j] * N_vec[j]
+    
+    beta_pop_matrix = C/gamma
+            
+        
+    # F_Vinv = np.zeros([8,8])
+    # F_Vinv[0:4,0:4] = beta_pop_matrix
+    # F_Vinv[0:4,4:] = beta_pop_matrix
+    
+    eigs = np.linalg.eigvals(beta_pop_matrix)
+    
+    return max(abs(eigs))
+    
+
+
 def population_examples(k):
     
     if k==4:
