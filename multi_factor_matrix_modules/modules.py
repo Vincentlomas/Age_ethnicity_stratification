@@ -13,7 +13,7 @@ import numpy as np
 
 
 
-def condition_checking_fixed(Ciajb,Cij, Nia, eth_rates = None, tol = 10**-8):
+def condition_checking_fixed(Ciajb,Cij, Nia, eth_rates = None, tol = 10**-8, is_shorthand = False):
     '''Takes as input:
         Ciajb: An nxmxnxm matrix that is the number of people in age group j 
             and ethnic group b an individual from age group i and ethnic group
@@ -26,6 +26,8 @@ def condition_checking_fixed(Ciajb,Cij, Nia, eth_rates = None, tol = 10**-8):
             rates between ethnicities
         tol: the tolerated different in matrix elements before a warning is
             raised, note that this is required due to some elements being floats
+        is_shorthand: Will print the first condition failed and then end without
+            formatting - used when checking a lot of matrices
             
             
         This function checks that the Ciajb matrix adheres to a few conditions:
@@ -53,10 +55,15 @@ def condition_checking_fixed(Ciajb,Cij, Nia, eth_rates = None, tol = 10**-8):
     
     # Check that total number of raw contacts match
     if abs(np.sum(Riajb) - np.sum(Rij)) < tol:
-        print('Total number of contacts conserved')
+        if not is_shorthand:
+            print('Total number of contacts conserved')
+            print()
     else:
         print('WARNING: Total number of contacts not conserved')
-    print()
+        if is_shorthand:
+            return None
+        else:
+            print()
     
     # Check that swapping (i,a) and (j,b) results in the same values
     symmetry_conserved = True
@@ -66,17 +73,27 @@ def condition_checking_fixed(Ciajb,Cij, Nia, eth_rates = None, tol = 10**-8):
                 if not np.all(abs(Riajb[i,a,:,:] - Riajb[:,:,i,a]) < tol):
                     symmetry_conserved = False
     if symmetry_conserved:
-        print('Symmetry is conserved')
+        if not is_shorthand:
+            print('Symmetry is conserved')
+            print()
     else:
         print('WARNING: R_iajb symmetry not conserved')
-    print()
+        if is_shorthand:
+            return None
+        else:
+            print()
     
     # Check elements of the raw contact matrix are same (stronger than total number of raw contacts match)
     if np.all(abs(Rij_est - Rij) < tol):
-        print('C_iajb aggregates to Cij')
+        if not is_shorthand:
+            print('C_iajb aggregates to Cij')
+            print()
     else:
         print('WARNING: C_iajb does not aggregate to Cij')
-    print()
+        if is_shorthand:
+            return None
+        else:
+            print()
     
     
     if eth_rates is None:
@@ -91,7 +108,9 @@ def condition_checking_fixed(Ciajb,Cij, Nia, eth_rates = None, tol = 10**-8):
             if not np.all(abs(new_eth_rate - eth_rates) < tol):
                 eth_rates_conserved = False
     if eth_rates_conserved:
-        print('intra age group eth rates conserved')
+        if not is_shorthand:
+            print('intra age group eth rates conserved')
+            print()
     else:
         print('WARNING: intra age group eth rates NOT conserved')
 
