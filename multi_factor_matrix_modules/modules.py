@@ -435,6 +435,8 @@ def scenario_parameters(k):
     '''Takes as input a value k and returns a population matrix,
     relative ethnic contact rates, and age contact rates'''
     
+    population_matrix = population_examples(k%5)
+    
     if k // 5 == 0:
         relative_ethnic_contact_rates = np.ones(2)
     else:
@@ -442,11 +444,10 @@ def scenario_parameters(k):
     
     if k == 4 or k==9:
         age_contact_rates = np.linspace(1,0.5,5)
+        age_contact_rates = age_contact_rates * np.sum(population_matrix) /np.sum(np.sum(population_matrix,axis=1)*age_contact_rates)
+        
     else:
         age_contact_rates = np.ones(5)
-    
-
-    population_matrix = population_examples(k%5)
 
         
     return population_matrix, relative_ethnic_contact_rates, age_contact_rates

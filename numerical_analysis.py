@@ -40,6 +40,91 @@ def legend_with_extra(solid_name,dashed_name, solid_line=None, dashed_line=None,
     else:
         ax.legend(handles, labels)
 
+def variance_plot(x_vals, variance_array,scenarios_to_plot, x_axis_title, y_axis_title, num_matrices, num_ethnic_groups, num_age_groups, is_save_fig, reproductive_numbers=None,is_xlog=False):
+    '''Input:
+        x_vals: 1D array corresponding to xvalues used for plotting
+        variance_array: Array of variance results of shape (number of scenarios,
+            plot number, y values)
+        scenarios to plot: list of scenarios to plot (scenarios being one more 
+            than their index). These scenarioa will be added as a line to every
+            graph
+        x_axis_title: Title of x axis
+        y_axis_title: Title of y axis
+        is_save_fig: Boolean, True when saving plots, False if not
+        is_xlog: boolean, True if x axis logged on plots
+    
+    Outputs:
+        A series of plots about matrices
+    '''
+    
+    plt.figure()
+    plt.title('Whole population')
+    for scen in scenarios_to_plot:
+        plt.plot(x_vals,variance_array[(scen-1),0,:], label=f"Scenario {scen}")
+    plt.legend()
+    if is_xlog:
+        plt.xscale('log')
+    plt.ylabel(y_axis_title)
+    plt.xlabel(x_axis_title)
+    plt.show()
+    
+    fig, axes = plt.subplots(1,num_ethnic_groups,figsize=(6*num_ethnic_groups, 4))
+    for i in range(num_ethnic_groups):
+        axes[i].set_title(f'Ethnic group {i+1}')
+        for scen in scenarios_to_plot:
+            axes[i].plot(x_vals,variance_array[(scen-1),(1+i),:], label=f"Scenario {scen}")
+        axes[i].legend()
+        axes[i].set_ylim([0,1])
+        axes[i].set_xlim([np.min(x_vals),np.max(x_vals)])
+        if is_xlog:
+            axes[i].set_xscale('log')
+        axes[i].set_ylabel(y_axis_title)
+        axes[i].set_xlabel(x_axis_title)
+    plt.show()
+    
+    fig, axes = plt.subplots(1,num_age_groups,figsize=(6*num_age_groups, 4))
+    for i in range(num_age_groups):
+        axes[i].set_title(f'Age group {i+1}')
+        for scen in scenarios_to_plot:
+            axes[i].plot(x_vals,variance_array[(scen-1),(1+ num_ethnic_groups +i),:], label=f"Scenario {scen}")
+        axes[i].legend()
+        axes[i].set_ylim([0,1])
+        axes[i].set_xlim([np.min(x_vals),np.max(x_vals)])
+        if is_xlog:
+            axes[i].set_xscale('log')
+        axes[i].set_ylabel(y_axis_title)
+        axes[i].set_xlabel(x_axis_title)
+    plt.show()
+    
+    fig, axes = plt.subplots(num_ethnic_groups,num_age_groups,figsize=(6*num_age_groups, 5*num_ethnic_groups ))
+    axes = axes.flatten()
+    for i in range(num_age_groups*num_ethnic_groups):
+        axes[i].set_title(f'Age group {i%5+1}, Ethnic group {i//2+1}')
+        for scen in scenarios_to_plot:
+            axes[i].plot(x_vals,variance_array[(scen-1),(1+num_ethnic_groups +num_age_groups +i),:], label=f"Scenario {scen}")
+        axes[i].legend()
+        if is_xlog:
+            axes[i].set_xscale('log')
+        axes[i].set_ylim([0,1])
+        axes[i].set_xlim([np.min(x_vals),np.max(x_vals)])
+        axes[i].set_ylabel(y_axis_title)
+        axes[i].set_xlabel(x_axis_title)
+    plt.tight_layout()
+    plt.show()
+    
+    if not reproductive_numbers is None:
+        plt.figure()
+        plt.title('Whole population')
+        for scen in scenarios_to_plot:
+            plt.plot(x_vals,reproductive_numbers[(scen-1),:], label=f"Scenario {scen}")
+        plt.legend()
+        if is_xlog:
+            plt.xscale('log')
+        plt.ylabel('Basic Reproductive Number')
+        plt.xlabel(x_axis_title)
+    plt.show()
+    
+    
 num_ethnic_groups = 2
 num_age_groups =5
 
@@ -145,7 +230,9 @@ for k, C_matrix in enumerate(C_storage_list):
         #gamma = 0.25 # Recovery rate
         time = 300
         
-        solution = scipy.integrate.solve_ivp(mfmm.SEIR_model, [0,time], np.concatenate([S,Sv,E,I,R,In]), t_eval=np.arange(time+1), args = (beta_matrix, sigma, gamma))
+        solution = scipy.integrate.solve_ivp(mfmm.SEIR_model, [0,time],
+                        np.concatenate(mfmm.initial_group_populations(N,is_vacc=False,pop_vec_vacc=np.array([]),initial_exposed=0.0001)),
+                        t_eval=np.arange(time+1), args = (beta_matrix, sigma, gamma))
         
         solutions.append(solution.y)
         
@@ -277,7 +364,10 @@ if is_run_relative_contact_rate_variance:
             
             # Convert C to per capita
             beta_matrix = mfmm.flatten_to_two_dim(C) / (N.T).flatten()
-            solution = scipy.integrate.solve_ivp(mfmm.SEIR_model, [0,time], np.concatenate([S,Sv,E,I,R,In]), t_eval=np.arange(time+1), args = (beta_matrix, sigma, gamma))
+            solution = scipy.integrate.solve_ivp(mfmm.SEIR_model, [0,time],
+                            np.concatenate(mfmm.initial_group_populations((N.T).flatten(),is_vacc=False,pop_vec_vacc=np.array([]),initial_exposed=0.0001)),
+                            t_eval=np.arange(time+1), args = (beta_matrix, sigma, gamma))
+            
             F_var_attack_rates[l,0,k] = np.sum(solution.y[50:,-1])/np.sum(N)
             F_var_attack_rates[l,1,k] = np.sum(solution.y[50:55,-1])/np.sum(N[:,0])
             F_var_attack_rates[l,2,k] = np.sum(solution.y[55:,-1])/np.sum(N[:,1])
@@ -296,60 +386,82 @@ if is_plot_relative_contact_rate_variance:
     reproductive_numbers = np.load('generated_results/ethnic_contact_ratio_variance_reprod_num_eth_epsilon{epsilon}_age_epsilon_{c}.npy')
     F_vals = np.load('generated_results/ethnic_contact_ratio_variance_Fvals_eth_epsilon{epsilon}_age_epsilon_{c}.npy')
     
-    scenarios_to_plot=[1,2,3,4,5]
-    plt.figure()
-    plt.title('Whole population')
-    for scen in scenarios_to_plot:
-        plt.plot(F_vals,F_var_attack_rates[(scen-1),0,:], label=f"Scenario {scen}")
-    plt.legend()
-    plt.xscale('log')
-    plt.ylabel('Attack rate')
-    plt.xlabel('Ratio of ethnic contact rates (F1/F2)')
+    variance_plot(F_vals, F_var_attack_rates,scenarios_to_plot=[1,2,3,4,5],
+                  x_axis_title='Ratio of ethnic contact rates (F1/F2)',
+                  y_axis_title='Attack rates',
+                  num_matrices=num_matrices, num_ethnic_groups=num_ethnic_groups,
+                  num_age_groups=num_age_groups, is_save_fig = False,
+                  reproductive_numbers=reproductive_numbers,is_xlog=True)
     
-    fig, axes = plt.subplots(1,num_ethnic_groups,figsize=(12, 4))
-    for i in range(num_ethnic_groups):
-        axes[i].set_title(f'Ethnic group {i+1}')
-        for scen in scenarios_to_plot:
-            axes[i].plot(F_vals,F_var_attack_rates[(scen-1),(1+i),:], label=f"Scenario {scen}")
-        axes[i].legend()
-        axes[i].set_ylim([0,1])
-        axes[i].set_xlim([np.min(F_vals),np.max(F_vals)])
-        axes[i].set_xscale('log')
-        axes[i].set_ylabel('Attack rate')
-        axes[i].set_xlabel('Ratio of ethnic contact rates (F1/F2)')
+    
+    
+is_run_epsilon_variance = False
+is_plot_epsilon_variance = True
+
+c = 0.3
+
+if is_run_epsilon_variance:
+    
+    resolution = 31
+    e_var_attack_rates = np.zeros([num_matrices,1+num_age_groups+num_ethnic_groups+num_age_groups*num_ethnic_groups, resolution])
+    reproductive_numbers = np.zeros([num_matrices,resolution])
+    
+    e_vals = np.linspace(0,1, resolution)
+    
+    for l in range(num_matrices):
         
-    fig, axes = plt.subplots(1,num_age_groups,figsize=(30, 4))
-    for i in range(num_age_groups):
-        axes[i].set_title(f'Age group {i+1}')
-        for scen in scenarios_to_plot:
-            axes[i].plot(F_vals,F_var_attack_rates[(scen-1),(3+i),:], label=f"Scenario {scen}")
-        axes[i].legend()
-        axes[i].set_ylim([0,1])
-        axes[i].set_xlim([np.min(F_vals),np.max(F_vals)])
-        axes[i].set_xscale('log')
-        axes[i].set_ylabel('Attack rate')
-        axes[i].set_xlabel('Ratio of ethnic contact rates (F1/F2)')
-    
-    fig, axes = plt.subplots(num_ethnic_groups,num_age_groups,figsize=(30, 10))
-    axes = axes.flatten()
-    for i in range(num_age_groups*num_ethnic_groups):
-        axes[i].set_title(f'Age group {i%5+1}, Ethnic group {i//2+1}')
-        for scen in scenarios_to_plot:
-            axes[i].plot(F_vals,F_var_attack_rates[(scen-1),(8+i),:], label=f"Scenario {scen}")
-        axes[i].legend()
-        axes[i].set_xscale('log')
-        axes[i].set_ylim([0,1])
-        axes[i].set_xlim([np.min(F_vals),np.max(F_vals)])
-        axes[i].set_ylabel('Attack rate')
-        axes[i].set_xlabel('Ratio of ethnic contact rates (F1/F2)')
+        N,F,a = mfmm.scenario_parameters(l)
         
-    plt.tight_layout()
+        Pij = np.zeros([num_age_groups,num_age_groups])
+        for i in range(num_age_groups):
+            for j in range(num_age_groups):
+                Pij[i,j] = (1-c)*a[i]*a[j]/np.sum(np.sum(N,axis=1)*a)
+                if i==j:
+                    Pij[i,j]+=c*a[j]/np.sum(N[j,:])
+                
+        Cij = np.zeros([num_age_groups,num_age_groups])
+        for j in range(num_age_groups):
+            Cij[:,j] = Pij[:,j] * np.sum(N[j,:])
+        
+        
+        for k in range(resolution):
+            
+            # Specify epsilon and grab contact matrix
+            epsilon = e_vals[k]
+            C = mfmm.return_C_matrix(epsilon,Cij,F, N)
+            
+            reproductive_numbers[l,k] = mfmm.initial_reproduction_number(mfmm.flatten_to_two_dim(C), gamma = gamma)
+            
+            mfmm.condition_checking_fixed(C, Cij, N,is_shorthand=True)
+            
+            # Convert C to per capita
+            beta_matrix = mfmm.flatten_to_two_dim(C) / (N.T).flatten()
+            solution = scipy.integrate.solve_ivp(mfmm.SEIR_model, [0,time],
+                            np.concatenate(mfmm.initial_group_populations((N.T).flatten(),is_vacc=False,pop_vec_vacc=np.array([]),initial_exposed=0.0001)),
+                            t_eval=np.arange(time+1), args = (beta_matrix, sigma, gamma))
+            
+            e_var_attack_rates[l,0,k] = np.sum(solution.y[50:,-1])/np.sum(N)
+            e_var_attack_rates[l,1,k] = np.sum(solution.y[50:55,-1])/np.sum(N[:,0])
+            e_var_attack_rates[l,2,k] = np.sum(solution.y[55:,-1])/np.sum(N[:,1])
+            for i in range(num_age_groups):
+                e_var_attack_rates[l,(3+i),k] = (solution.y[(50+i),-1]+solution.y[(55+i),-1])/np.sum(N[i,:])
+            for i in range(num_age_groups*num_ethnic_groups):
+                e_var_attack_rates[l,(8+i),k] = solution.y[(50+i),-1]/np.sum(N[i%num_age_groups,i//num_age_groups])
     
-    plt.figure()
-    plt.title('Whole population')
-    for scen in scenarios_to_plot:
-        plt.plot(F_vals,reproductive_numbers[(scen-1),:], label=f"Scenario {scen}")
-    plt.legend()
-    plt.xscale('log')
-    plt.ylabel('Basic Reproductive Number')
-    plt.xlabel('Ratio of ethnic contact rates (F1/F2)')
+    np.save('generated_results/eth_epsilon_variance_attack_rate_age_epsilon_{c}.npy', e_var_attack_rates)
+    np.save('generated_results/eth_epsilon_variance_reprod_num_age_epsilon_{c}.npy', reproductive_numbers)
+    np.save('generated_results/eth_epsilon_variance_e_vals_age_epsilon_{c}.npy', e_vals)
+
+
+if is_plot_relative_contact_rate_variance:
+    e_var_attack_rates = np.load('generated_results/eth_epsilon_variance_attack_rate_age_epsilon_{c}.npy')
+    reproductive_numbers = np.load('generated_results/eth_epsilon_variance_reprod_num_age_epsilon_{c}.npy')
+    e_vals = np.load('generated_results/eth_epsilon_variance_e_vals_age_epsilon_{c}.npy')
+    
+    variance_plot(e_vals, e_var_attack_rates,scenarios_to_plot=[1,2,3,4,5],
+                  x_axis_title='Ethnic epsilon value', y_axis_title='Attack rates',
+                  num_matrices=num_matrices, num_ethnic_groups=num_ethnic_groups,
+                  num_age_groups=num_age_groups, is_save_fig = False,
+                  reproductive_numbers=reproductive_numbers,is_xlog=False)
+    
+    
