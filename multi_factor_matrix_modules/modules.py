@@ -436,7 +436,7 @@ def scenario_parameters(k):
     relative ethnic contact rates, and age contact rates'''
     
     # removing redundancy in scenarios
-    if k <=5:
+    if k <=4:
         k +=5
     
     population_matrix = population_examples(k%5)

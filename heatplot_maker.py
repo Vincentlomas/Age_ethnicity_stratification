@@ -86,8 +86,8 @@ curr_max = 0
 
 
 eth_rel_res = 7
-for scenario_num in [1,2,3,4,5,6,7,8,9,10]:
-    N,F,a = mfmm.scenario_parameters(scenario_num)
+for scenario_num in [1,2,3,4,5]:
+    N,F,a = mfmm.scenario_parameters(scenario_num-1)
     
     num_age_groups, num_ethnic_groups = np.shape(N)
     
