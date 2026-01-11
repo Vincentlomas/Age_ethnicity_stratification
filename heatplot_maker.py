@@ -11,9 +11,9 @@ import multi_factor_matrix_modules.modules as mfmm
 import scipy
 import seaborn as sns
 
-is_generate_results = True
+is_generate_results = False
 is_plot = True
-is_savefig = False
+is_savefig = True
 
 # Constructing the contact matrices
 
@@ -139,15 +139,27 @@ for scenario_num in [1,2,3,4,5]:
                             t_eval=np.arange(time+1), args = (beta_matrix, sigma, gamma))
             attack_rate_matrix[eth_rel_idx, eth_idx] = np.sum(solution.y[-10:,-1]) / np.sum(N)
     
+    y_labels = []
+    pwrs = np.round(np.linspace(-1.5,1.5,eth_rel_res),1)
+    for eth_rel_idx in range(eth_rel_res):
+        if eth_rel_idx%2:
+            y_labels.append('')
+        else:
+            pwr = pwrs[eth_rel_idx]
+            y_labels.append(f'$2^{{{pwr}}}$')
+        
     heatplot = sns.heatmap(attack_rate_matrix,
                 cmap="viridis", xticklabels=np.round(np.linspace(0,1,eth_res),2),
-                yticklabels=np.round(np.linspace(-1.5,1.5,eth_rel_res),1),cbar=True,
+                yticklabels=y_labels,cbar=True,
                 rasterized=True, vmin=0.4, vmax=0.6)
     heatplot.set_title(f'Senario {scenario_num}')
     heatplot.set_xlabel("Ethnic assortativity")
-    heatplot.set_ylabel("Relative contact rate (log_2)")
+    heatplot.set_ylabel("Relative contact rate")
     plt.show()
     
     
     curr_min = np.min([curr_min,np.min(attack_rate_matrix)])
     curr_max = np.max([curr_max,np.max(attack_rate_matrix)])
+    
+    if is_savefig:
+        plt.savefig(f'images/heatplots/rel_contact_rate_vs_eth_epsilon/rel_contact_rate_vs_eth_epsilon_scen{scenario_num}.png',dpi=300)

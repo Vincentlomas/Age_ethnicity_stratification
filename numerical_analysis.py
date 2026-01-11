@@ -19,6 +19,7 @@ from cycler import cycler
 import multi_factor_matrix_modules.modules as mfmm
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.ticker as pyplottk
 import scipy
 
 def legend_with_extra(solid_name,dashed_name, solid_line=None, dashed_line=None,ax=None):
@@ -81,8 +82,28 @@ def variance_plot(x_vals, variance_array,scenarios_to_plot, x_axis_title,
     axes[0,1].axis('off')
     if is_xlog:
         axes[0,0].set_xscale('log')
+        min_2_pwr = int(np.round(np.log(min(x_vals))/np.log(2)))
+        max_2_pwr = int(np.round(np.log(max(x_vals))/np.log(2)))
+        if min_2_pwr%2:
+            min_2_pwr_tick = min_2_pwr + 1 
+        else:
+            min_2_pwr_tick = min_2_pwr
+        # label ticks with power of two
+        tick_labels = []
+        for pwr in range(min_2_pwr_tick, max_2_pwr+1,2):
+            tick_labels.append(f'$2^{{{pwr}}}$')
+        axes[0,0].get_xaxis().set_major_formatter(pyplottk.ScalarFormatter())
+        axes[0,0].set_xticks(2**np.arange(min_2_pwr_tick,max_2_pwr+0.5,2),labels=tick_labels)
+        axes[0,0].get_xaxis().set_tick_params(which='minor', size=0)
+        axes[0,0].get_xaxis().set_tick_params(which='minor', width=0) 
     axes[0,0].set_ylabel(y_axis_title)
     axes[0,0].set_xlabel(x_axis_title)
+    axes[0,0].set_xlim(min(x_vals),max(x_vals))
+    axes[0,0].set_ylim(0,100)
+    if is_line_at_1:
+        axes[0,0].axvline(1, 0,100,color='black',linestyle=':')
+        axes[1,0].axvline(1, 0,100,color='black',linestyle=':')
+        axes[1,1].axvline(1, 0,100,color='black',linestyle=':')
     
     for i in range(num_ethnic_groups):
         axes[1,i].set_title(f'Ethnic group {i+1}')
@@ -92,6 +113,20 @@ def variance_plot(x_vals, variance_array,scenarios_to_plot, x_axis_title,
         axes[1,i].set_xlim([np.min(x_vals),np.max(x_vals)])
         if is_xlog:
             axes[1,i].set_xscale('log')
+            min_2_pwr = int(np.round(np.log(min(x_vals))/np.log(2)))
+            max_2_pwr = int(np.round(np.log(max(x_vals))/np.log(2)))
+            if min_2_pwr%2:
+                min_2_pwr_tick = min_2_pwr + 1 
+            else:
+                min_2_pwr_tick = min_2_pwr
+            # label ticks with power of two
+            tick_labels = []
+            for pwr in range(min_2_pwr_tick, max_2_pwr+1,2):
+                tick_labels.append(f'$2^{{{pwr}}}$')
+            axes[1,i].get_xaxis().set_major_formatter(pyplottk.ScalarFormatter())
+            axes[1,i].set_xticks(2**np.arange(min_2_pwr_tick,max_2_pwr+0.5,2),labels=tick_labels)
+            axes[1,i].get_xaxis().set_tick_params(which='minor', size=0)
+            axes[1,i].get_xaxis().set_tick_params(which='minor', width=0) 
         axes[1,i].set_ylabel(y_axis_title)
         axes[1,i].set_xlabel(x_axis_title)
     if is_save_fig:
@@ -142,6 +177,7 @@ def variance_plot(x_vals, variance_array,scenarios_to_plot, x_axis_title,
             plt.xscale('log')
         plt.ylabel('Basic Reproductive Number')
         plt.xlabel(x_axis_title)
+        plt.xlim(min(x_vals),max(x_vals))
         if is_save_fig:
             plt.savefig(f'images/{filename}_R0.png', dpi=300,bbox_inches='tight')
         plt.show()
@@ -444,7 +480,7 @@ if is_plot_relative_contact_rate_variance:
                   num_matrices=num_matrices, num_ethnic_groups=num_ethnic_groups,
                   num_age_groups=num_age_groups, is_save_fig = is_save_figs,
                   filename=f'relative_contact_rate_variation/relative_contact_rate_variation_eth_epsilon{epsilon}_age_epsilon_{c}',
-                  reproductive_numbers=reproductive_numbers,is_xlog=True)
+                  reproductive_numbers=reproductive_numbers,is_xlog=True,is_line_at_1=True)
     
 
 
