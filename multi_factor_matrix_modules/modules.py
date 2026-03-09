@@ -307,8 +307,10 @@ def return_C_matrix_assortative(Cij,ethnic_contact_rates, N_matrix):
     Rij = np.zeros([num_age_groups,num_age_groups])
     for i in range(num_age_groups):
         Rij[i,:] = Cij[i,:] * np.sum(N_matrix[i,:])
-    if np.sum(abs(Rij - Rij.T)) > 10**-8:
-        print('Age contact matrix and population matrix do not result in a symmetric raw contact matrix (to a tolerance of 10**-8)')
+    
+    differnce_tol_power = -0
+    if np.sum(abs(Rij - Rij.T)) > 10**differnce_tol_power:
+        print(f'Age contact matrix and population matrix do not result in a symmetric raw contact matrix (to a tolerance of 10**{differnce_tol_power})')
         return None
     
     C_assortative = np.zeros([num_age_groups,num_ethnic_groups,num_age_groups,num_ethnic_groups],dtype = 'float64')
@@ -379,7 +381,11 @@ def return_C_matrix_proportionate(Cij,ethnic_contact_rates, N_matrix):
     Rij = np.zeros([num_age_groups,num_age_groups])
     for i in range(num_age_groups):
         Rij[i,:] = Cij[i,:] * np.sum(N_matrix[i,:])
-    if np.sum(abs(Rij - Rij.T)) > 10**-8:
+
+    differnce_tol_power = 0
+    if np.sum(abs(Rij - Rij.T)) > 10**differnce_tol_power:
+        print(Rij[1,0])
+        print(Rij[0,1])
         print('Age contact matrix and population matrix do not result in a symmetric raw contact matrix (to a tolerance of 10**-8)')
         return None
     

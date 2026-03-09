@@ -188,7 +188,7 @@ plt.rc('axes', prop_cycle=cycler(color=['#12436D', '#28A197', '#9E1962', '#F46A2
 num_ethnic_groups = 2
 num_age_groups =5
 
-epsilon = 0.3
+epsilon = 1
 gamma = 2/3
 sigma = 1/3 # Rate of disease development
 time = 300
@@ -205,17 +205,17 @@ c = 0.3 # Age based assortativity
 
 is_save_figs = True
 
-is_plot_matrices = False
+is_plot_matrices = True
 is_plot_SEIR = False
 
 is_run_relative_contact_rate_variance = False
-is_plot_relative_contact_rate_variance = True
+is_plot_relative_contact_rate_variance = False
 
 is_run_transmission_variance = False
-is_plot_transmission_variance = True
+is_plot_transmission_variance = False
 
 is_run_epsilon_variance = False
-is_plot_epsilon_variance = True
+is_plot_epsilon_variance = False
 
 scenarios_to_plot = [1,2,3,4,5]
 
@@ -285,7 +285,7 @@ if is_plot_matrices:
     cbar = fig.colorbar(im, ax=axes, orientation='vertical', fraction=0.02, pad=0.04)
     cbar.set_label('Contact rate')
     if is_save_figs:
-        plt.savefig(f'images/heatplot_matrix_comparison_epsilon_{epsilon}.png', dpi=300)
+        plt.savefig(f'images/heatplot_matrix_comparison_epsilon_{epsilon}.png', dpi=300,bbox_inches='tight')
     plt.show()
 
 
