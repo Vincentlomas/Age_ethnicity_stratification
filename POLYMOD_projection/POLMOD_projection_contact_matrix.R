@@ -1,9 +1,11 @@
 library(conmat)
 library(tidyverse)
 
+# Get POLYMOD data
 polymod_contact_data <- get_polymod_contact_data()
 polymod_survey_data <- get_polymod_population()
 
+# Set up age structure of NZ
 age_data <- data.frame(
   lower.age.limit = seq(0,90,5),
   population = c(288387,
@@ -27,9 +29,9 @@ age_data <- data.frame(
                  33093
   )
 )
-
 age_tibble = conmat_population(age_data, age='lower.age.limit', population='population')
 
+# Fit model
 contact_model <- fit_single_contact_model(
   contact_data = polymod_contact_data,
   population = polymod_survey_data
@@ -41,6 +43,7 @@ synthetic_contact_NZ <- predict_contacts(
   age_breaks = c(seq(0, 90, by = 5), Inf)
 )
 
+# Convert to matrix
 mat = predictions_to_matrix(synthetic_contact_NZ)
 
 mat %>%
@@ -52,4 +55,5 @@ mat_DB = 0.5 * (mat + (age_data$population %*% (1/t(age_data$population)) ) * t(
 mat_DB %>%
   autoplot()
 
-write.csv(mat_DB, "C:/Users/lonep/Documents/Uni/2025/Thesis/Age_ethnicity_stratification/contact_matrix_NZ.csv", row.names = FALSE)
+# Save as csv
+write.csv(mat_DB, "../data/contact_matrix_NZ.csv", row.names = FALSE)

@@ -6,13 +6,6 @@ Created on Mon Sep  8 12:48:26 2025
 
 Numerical analysis of new contact matrix construction method
 
-0) Push X more extreme, make entries negative
-Done 1) keep in mind to try diff age groups having diff contact rates - linear, oldest 50% of youngest contact rate (tack onto last age structure)
-Done 2) Put together a func to calculate R0
-Done 3) Start working with cum prop of I in each (i,a) group
-Done 3.a) Start plotting this as a function of assortativity and relative contact rate
- - can multiply matri by a constant to scale R0
-Done 3.b) average attack rate for each ethnic group (and less relevantly age)
 """
 
 from cycler import cycler
@@ -23,6 +16,17 @@ import matplotlib.ticker as pyplottk
 import scipy
 
 def legend_with_extra(solid_name,dashed_name, solid_line=None, dashed_line=None,ax=None):
+    '''
+    Inputs: solid_name: str, name of first line added to legend
+        dashed_name: str, name of second line added to legend
+        solid_line: matplotlib.lines.Line2D, the first line to be added to the
+            end of the legend, if None defaults to a solid grey line
+        dashed_line: matplotlib.lines.Line2D, the second line to be added to the
+            end of the legend, if None defaults to a dashed grey line
+        ax: matplotlib.axes._axes.Axes, the axes to add the legend to, if None
+            treats it like adding a lenend to a normal plot.
+    Adds a legend to a plot (or axes) as pyplot typically does and adds a grey 
+    solid and dashed line to the end'''
     # Add solid and dashed line to legend
     if solid_line is None:
         solid_line = plt.Line2D([0], [0], color='gray', linestyle='-', label=solid_name)
@@ -45,7 +49,7 @@ def legend_with_extra(solid_name,dashed_name, solid_line=None, dashed_line=None,
 def variance_plot(x_vals, variance_array,scenarios_to_plot, x_axis_title,
                   y_axis_title, num_matrices, num_ethnic_groups, num_age_groups,
                   is_save_fig, filename =None, reproductive_numbers=None,is_xlog=False,
-                  is_line_at_1=False):
+                  is_line_at_1=False, is_horizontal_line_at_1=False):
     '''Input:
         x_vals: 1D array corresponding to xvalues used for plotting
         variance_array: Array of variance results of shape (number of scenarios,
@@ -59,76 +63,114 @@ def variance_plot(x_vals, variance_array,scenarios_to_plot, x_axis_title,
         is_xlog: boolean, True if x axis logged on plots
     
     Outputs:
-        A series of plots about matrices
+        A series of plots about matrices used in the paper
     '''
     
     fig, axes = plt.subplots(2,2,figsize=(12,8))
+    fig.text(0.5, 0.04, x_axis_title, ha='center')
     
-    box = axes[0,0].get_position()
-    box.x0 = box.x0 + 0.21
-    box.x1 = box.x1 + 0.21
-    axes[0,0].set_position(box)
+    ### 3 image plot code (4 images if basic reproductive numbers were specified)
+    title_fontsize = 16
+    ### plot reproduction numbers
+    if not reproductive_numbers is None:
+        
+        primary_plot_idx = 1
+        if is_horizontal_line_at_1:
+            axes[0,0].axhline(1, color='black', linestyle='dotted')
+        axes[0,0].set_title('a)', loc='left', fontsize=title_fontsize)
+        axes[0,1].set_title('b)', loc='left', fontsize=title_fontsize)
+        axes[1,0].set_title('c)',loc='left', fontsize=title_fontsize)
+        axes[1,1].set_title('d)',loc='left', fontsize=title_fontsize)
+        for scen in scenarios_to_plot:
+            axes[0,0].plot(x_vals,reproductive_numbers[(scen-1),:], label=f"Scenario {scen}")
+        if is_xlog:
+            axes[0,0].set_xscale('log')
+            min_2_pwr = int(np.ceil(np.log(min(x_vals))/np.log(2)))
+            max_2_pwr = int(np.floor(np.log(max(x_vals))/np.log(2)))
+            
+            # List of tick labels 
+            tick_labels = []
+            for pwr in range(min_2_pwr, max_2_pwr+1,1):
+                # tick_labels.append(f'$2^{{{pwr}}}$') # used for power of two labeling (not used right now)
+                # tick_labels.append(np.round(2**pwr,4))
+                tick_labels.append('') # don't plot anything on the x ticks of this plot
+            axes[0,0].get_xaxis().set_major_formatter(pyplottk.ScalarFormatter())
+            axes[0,0].set_xticks(2.0**np.arange(min_2_pwr,max_2_pwr+1,1),labels=tick_labels)
+            axes[0,0].get_xaxis().set_tick_params(which='minor', size=0)
+            axes[0,0].get_xaxis().set_tick_params(which='minor', width=0) 
+        axes[0,0].set_ylabel('Basic Reproductive Number')
+        axes[0,0].set_xlim(min(x_vals),max(x_vals))
+    else:
+        primary_plot_idx = 0
+        axes[0,0].set_title('a)', loc='left', fontsize=title_fontsize)
+        axes[1,0].set_title('b)',loc='left', fontsize=title_fontsize)
+        axes[1,1].set_title('c)',loc='left', fontsize=title_fontsize)
+        
+        box = axes[0,0].get_position()
+        box.x0 = box.x0 + 0.21
+        box.x1 = box.x1 + 0.21
+        axes[0,0].set_position(box)
+        
+        axes[0,1].axis('off')
     
-    axes[0,0].set_title('Whole population')
     handles = []
     for scen in scenarios_to_plot:
-        line, = axes[0,0].plot(x_vals,variance_array[(scen-1),0,:], label=f"Scenario {scen}")
+        line, = axes[0,primary_plot_idx].plot(x_vals,variance_array[(scen-1),0,:], label=f"Scenario {scen}")
         handles.append(line)
-    leg = axes[0,1].legend(handles, ["Scenario 1","Scenario 2","Scenario 3","Scenario 4","Scenario 5"], bbox_to_anchor=(0.98, 0.5),loc = 'center right',prop={'size': 16})
+        
+    if not reproductive_numbers is None:
+        leg = axes[0,1].legend(handles, ["Scenario 1","Scenario 2","Scenario 3","Scenario 4","Scenario 5"], bbox_to_anchor=(0.98, 0.5)) #,loc = 'lower right')
+    else:
+        leg = axes[0,1].legend(handles, ["Scenario 1","Scenario 2","Scenario 3","Scenario 4","Scenario 5"], bbox_to_anchor=(0.98, 0.5),loc = 'center right',prop={'size': 16})
     
     for line in leg.get_lines():
         line.set_linewidth(5.0)
     
-    axes[0,1].axis('off')
     if is_xlog:
-        axes[0,0].set_xscale('log')
-        min_2_pwr = int(np.round(np.log(min(x_vals))/np.log(2)))
-        max_2_pwr = int(np.round(np.log(max(x_vals))/np.log(2)))
-        if min_2_pwr%2:
-            min_2_pwr_tick = min_2_pwr + 1 
-        else:
-            min_2_pwr_tick = min_2_pwr
-        # label ticks with power of two
+        axes[0,1].set_xscale('log')
+        min_2_pwr = int(np.ceil(np.log(min(x_vals))/np.log(2)))
+        max_2_pwr = int(np.floor(np.log(max(x_vals))/np.log(2)))
+        # List of tick labels 
         tick_labels = []
-        for pwr in range(min_2_pwr_tick, max_2_pwr+1,2):
-            tick_labels.append(f'$2^{{{pwr}}}$')
-        axes[0,0].get_xaxis().set_major_formatter(pyplottk.ScalarFormatter())
-        axes[0,0].set_xticks(2**np.arange(min_2_pwr_tick,max_2_pwr+0.5,2),labels=tick_labels)
-        axes[0,0].get_xaxis().set_tick_params(which='minor', size=0)
-        axes[0,0].get_xaxis().set_tick_params(which='minor', width=0) 
-    axes[0,0].set_ylabel(y_axis_title)
-    axes[0,0].set_xlabel(x_axis_title)
-    axes[0,0].set_xlim(min(x_vals),max(x_vals))
-    axes[0,0].set_ylim(0,100)
+        for pwr in range(min_2_pwr, max_2_pwr+1,1):
+            # tick_labels.append(f'$2^{{{pwr}}}$') # used for power of two labeling (not used right now)
+            # tick_labels.append(np.round(2**pwr,4))
+            tick_labels.append('') # don't plot anything on the x ticks of this plot
+        axes[0,primary_plot_idx].get_xaxis().set_major_formatter(pyplottk.ScalarFormatter())
+        axes[0,primary_plot_idx].set_xticks(2.0**np.arange(min_2_pwr,max_2_pwr+1,1),labels=tick_labels)
+        axes[0,primary_plot_idx].get_xaxis().set_tick_params(which='minor', size=0)
+        axes[0,primary_plot_idx].get_xaxis().set_tick_params(which='minor', width=0) 
+    axes[0,primary_plot_idx].set_ylabel(y_axis_title)
+    axes[0,primary_plot_idx].set_xlim(min(x_vals),max(x_vals))
+    axes[0,primary_plot_idx].set_ylim(0,100)
     if is_line_at_1:
-        axes[0,0].axvline(1, 0,100,color='black',linestyle=':')
+        if not reproductive_numbers is None:
+            axes[0,0].axvline(1, 0,100,color='black',linestyle=':')
+        axes[0,primary_plot_idx].axvline(1, 0,100,color='black',linestyle=':')
         axes[1,0].axvline(1, 0,100,color='black',linestyle=':')
         axes[1,1].axvline(1, 0,100,color='black',linestyle=':')
     
     for i in range(num_ethnic_groups):
-        axes[1,i].set_title(f'Ethnic group {i+1}')
+        # axes[1,i].set_title(f'Ethnic group {i+1}')
         for scen in scenarios_to_plot:
             axes[1,i].plot(x_vals,variance_array[(scen-1),(1+i),:], label=f"Scenario {scen}")
         axes[1,i].set_ylim([0,100])
         axes[1,i].set_xlim([np.min(x_vals),np.max(x_vals)])
         if is_xlog:
             axes[1,i].set_xscale('log')
-            min_2_pwr = int(np.round(np.log(min(x_vals))/np.log(2)))
-            max_2_pwr = int(np.round(np.log(max(x_vals))/np.log(2)))
-            if min_2_pwr%2:
-                min_2_pwr_tick = min_2_pwr + 1 
-            else:
-                min_2_pwr_tick = min_2_pwr
-            # label ticks with power of two
+            min_2_pwr = int(np.ceil(np.log(min(x_vals))/np.log(2)))
+            max_2_pwr = int(np.floor(np.log(max(x_vals))/np.log(2)))
+            # List of tick labels 
             tick_labels = []
-            for pwr in range(min_2_pwr_tick, max_2_pwr+1,2):
-                tick_labels.append(f'$2^{{{pwr}}}$')
+            for pwr in range(min_2_pwr, max_2_pwr+1,1):
+                # tick_labels.append(f'$2^{{{pwr}}}$') # used for power of two labeling (not used right now)
+                # tick_labels.append(np.round(2**pwr,4))
+                tick_labels.append(np.round(2.0**pwr,4))
             axes[1,i].get_xaxis().set_major_formatter(pyplottk.ScalarFormatter())
-            axes[1,i].set_xticks(2**np.arange(min_2_pwr_tick,max_2_pwr+0.5,2),labels=tick_labels)
+            axes[1,i].set_xticks(2.0**np.arange(min_2_pwr,max_2_pwr+1,1),labels=tick_labels)
             axes[1,i].get_xaxis().set_tick_params(which='minor', size=0)
             axes[1,i].get_xaxis().set_tick_params(which='minor', width=0) 
         axes[1,i].set_ylabel(y_axis_title)
-        axes[1,i].set_xlabel(x_axis_title)
     if is_save_fig:
         plt.savefig(f'images/{filename}_ethnic.png', dpi=300,bbox_inches='tight')
     plt.show()
@@ -167,28 +209,13 @@ def variance_plot(x_vals, variance_array,scenarios_to_plot, x_axis_title,
         plt.savefig(f'images/{filename}_age_ethnic.png', dpi=300,bbox_inches='tight')
     plt.show()
     
-    if not reproductive_numbers is None:
-        plt.figure()
-        plt.title('Whole population')
-        for scen in scenarios_to_plot:
-            plt.plot(x_vals,reproductive_numbers[(scen-1),:], label=f"Scenario {scen}")
-        plt.legend()
-        if is_xlog:
-            plt.xscale('log')
-        plt.ylabel('Basic Reproductive Number')
-        plt.xlabel(x_axis_title)
-        plt.xlim(min(x_vals),max(x_vals))
-        if is_save_fig:
-            plt.savefig(f'images/{filename}_R0.png', dpi=300,bbox_inches='tight')
-        plt.show()
-    
 
 plt.rc('axes', prop_cycle=cycler(color=['#12436D', '#28A197', '#9E1962', '#F46A25','#D21D1D']))
 
 num_ethnic_groups = 2
 num_age_groups =5
 
-epsilon = 1
+epsilon = 0.3
 gamma = 2/3
 sigma = 1/3 # Rate of disease development
 time = 300
@@ -205,11 +232,11 @@ c = 0.3 # Age based assortativity
 
 is_save_figs = True
 
-is_plot_matrices = True
+is_plot_matrices = False
 is_plot_SEIR = False
 
 is_run_relative_contact_rate_variance = False
-is_plot_relative_contact_rate_variance = False
+is_plot_relative_contact_rate_variance = True
 
 is_run_transmission_variance = False
 is_plot_transmission_variance = False
@@ -222,6 +249,10 @@ scenarios_to_plot = [1,2,3,4,5]
 # Constructing the contact matrices
 for k in range(num_matrices):
     N,F,a = mfmm.scenario_parameters(k)
+    
+    ### Check
+    if not (2*k)//num_matrices:
+        F=[1,1]
     
     Pij = np.zeros([num_age_groups,num_age_groups])
     for i in range(num_age_groups):
@@ -277,7 +308,7 @@ if is_plot_matrices:
     axes = axes.flatten()
     for i, C_matrix in enumerate(C_storage_list):
         im = axes[i].imshow(mfmm.flatten_to_two_dim(C_matrix)/np.max(C_matrix),vmin=vmin, vmax=1,cmap='viridis', aspect='auto')
-        axes[i].set_title(f'{"abcdefghijklmnop"[i]})')
+        axes[i].set_title(f'{"abcdefghijklmnop"[i]})', loc='left', fontsize=16)
         # Turn off ticks
         axes[i].set_xticks([])
         axes[i].set_yticks([])
@@ -416,7 +447,7 @@ if is_run_relative_contact_rate_variance:
     F_var_attack_rates = np.zeros([num_matrices//2,1+num_age_groups+num_ethnic_groups+num_age_groups*num_ethnic_groups, resolution])
     reproductive_numbers = np.zeros([num_matrices//2,resolution])
     
-    F_vals = 2**np.linspace(-5, 5, resolution)
+    F_vals = 10**np.linspace(-1, 1, resolution)
     
     for l in range(num_matrices//2):
         
@@ -486,16 +517,21 @@ if is_plot_relative_contact_rate_variance:
 
 if is_run_transmission_variance:
     
+    # number of different transmission values to simulate
     resolution = 301
     transmission_var_attack_rates = np.zeros([num_matrices,1+num_age_groups+num_ethnic_groups+num_age_groups*num_ethnic_groups, resolution])
     
     
     transmission_vals = np.linspace(0,3, resolution)
+    reproductive_numbers = np.zeros([num_matrices,resolution])
     
+    
+    # iterate over all scenarios
     for l in range(num_matrices):
         
         N,F,a = mfmm.scenario_parameters(l)
         
+        # Form the age social contact matrix
         Pij = np.zeros([num_age_groups,num_age_groups])
         for i in range(num_age_groups):
             for j in range(num_age_groups):
@@ -504,19 +540,23 @@ if is_run_transmission_variance:
                     Pij[i,j]+=c*a[j]/np.sum(N[j,:])
         # # Scale to have basic reproductive number of 1
         # Pij = Pij / scenario_reproductive_numbers[l]
-                
         Cij = np.zeros([num_age_groups,num_age_groups])
         for j in range(num_age_groups):
             Cij[:,j] = Pij[:,j] * np.sum(N[j,:])
         
+        # Turn the age social contact matrix into the age-ethnicity matrix
         C = mfmm.return_C_matrix(epsilon,Cij,F, N)
-        
+        # check that the matrix satisfies our conditions
         mfmm.condition_checking_fixed(C, Cij, N,is_shorthand=True)
         
+        # simulate SEIR model for each transmission probability
         for k in range(resolution):
             
-            # Specify epsilon and grab contact matrix
             q = transmission_vals[k]
+            
+            # basic reproductive number
+            reproductive_numbers[l,k] = mfmm.initial_reproduction_number(mfmm.flatten_to_two_dim(q*C), gamma = gamma)
+            
             
             # Convert C to per capita
             beta_matrix = mfmm.flatten_to_two_dim(C) / (N.T).flatten()
@@ -527,27 +567,31 @@ if is_run_transmission_variance:
                             np.concatenate(mfmm.initial_group_populations((N.T).flatten(),is_vacc=False,pop_vec_vacc=np.array([]),initial_exposed=0.0001)),
                             t_eval=np.arange(time+1), args = (beta_matrix, sigma, gamma))
             
-            transmission_var_attack_rates[l,0,k] = np.sum(solution.y[50:,-1])/np.sum(N)
-            transmission_var_attack_rates[l,1,k] = np.sum(solution.y[50:55,-1])/np.sum(N[:,0])
-            transmission_var_attack_rates[l,2,k] = np.sum(solution.y[55:,-1])/np.sum(N[:,1])
+            # Grab the results
+            transmission_var_attack_rates[l,0,k] = np.sum(solution.y[50:,-1])/np.sum(N) # whole population
+            transmission_var_attack_rates[l,1,k] = np.sum(solution.y[50:55,-1])/np.sum(N[:,0]) # demographic group 1
+            transmission_var_attack_rates[l,2,k] = np.sum(solution.y[55:,-1])/np.sum(N[:,1]) # demographic group 2
             for i in range(num_age_groups):
                 transmission_var_attack_rates[l,(3+i),k] = (solution.y[(50+i),-1]+solution.y[(55+i),-1])/np.sum(N[i,:])
             for i in range(num_age_groups*num_ethnic_groups):
                 transmission_var_attack_rates[l,(8+i),k] = solution.y[(50+i),-1]/np.sum(N[i%num_age_groups,i//num_age_groups])
     
-    np.save('generated_results/transmission_variance_attack_rate_age_epsilon_{c}.npy', transmission_var_attack_rates)
-    np.save('generated_results/transmission_variance_transmission_vals_age_epsilon_{c}.npy', transmission_vals)
-
+    np.save('generated_results/transmission_variance_attack_rate_ethnic_epsilon_{epsilon}_age_epsilon_{c}.npy', transmission_var_attack_rates)
+    np.save('generated_results/transmission_variance_reprod_num_ethnic_epsilon_{epsilon}_age_epsilon_{c}.npy', reproductive_numbers)
+    np.save('generated_results/transmission_variance_transmission_vals_ethnic_epsilon_{epsilon}_age_epsilon_{c}.npy', transmission_vals)
+    print(np.shape(reproductive_numbers))
 
 if is_plot_transmission_variance:
-    transmission_var_attack_rates = np.load('generated_results/transmission_variance_attack_rate_age_epsilon_{c}.npy')
-    transmission_vals = np.load('generated_results/transmission_variance_transmission_vals_age_epsilon_{c}.npy')
+    transmission_var_attack_rates = np.load('generated_results/transmission_variance_attack_rate_ethnic_epsilon_{epsilon}_age_epsilon_{c}.npy')
+    transmission_vals = np.load('generated_results/transmission_variance_transmission_vals_ethnic_epsilon_{epsilon}_age_epsilon_{c}.npy')
+    transmission_reprods = np.load('generated_results/transmission_variance_reprod_num_ethnic_epsilon_{epsilon}_age_epsilon_{c}.npy')
     
     variance_plot(transmission_vals/3, 100*transmission_var_attack_rates,scenarios_to_plot=scenarios_to_plot,
                   x_axis_title='transmission probability', y_axis_title='Attack rates (%)',
                   num_matrices=num_matrices, num_ethnic_groups=num_ethnic_groups,
                   num_age_groups=num_age_groups, is_save_fig = is_save_figs,is_xlog=False,
-                  filename = 'transmission_variation')
+                  reproductive_numbers=transmission_reprods,
+                  filename = 'transmission_variation',is_horizontal_line_at_1=True)
     
     
     

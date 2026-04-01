@@ -175,14 +175,22 @@ def initial_group_populations(pop_vec,is_vacc,pop_vec_vacc=np.array([]),initial_
 
 
 
-def initial_reproduction_number(C = None, P = None,N_vec_vacc=None,N_vec = None, gamma=-1):
+def initial_reproduction_number(C = None, P = None,N_vec = None, gamma=-1):
+    '''Input: C: a 2 axis numpy.ndarray, the social contact matrix, if None
+            then the per capita matrix must be provided instead
+        P: a 2 axis numpy.ndarray, the per capita social contact matrix, if None
+            then the matrix must be provided instead
+        N_vec: a 1 axis numpy.ndarray, a vector of the populations of each group
+        gamma: the infectious period of individuals in the model, defaults to -1
+            which will raise an error for being negative
     
+    Output: np.float64, the basic reproductive number'''
     if P is None and C is None:
         raise Exception("Provide either a per capita contact matrix (P) or a contact matrix (C)")
     elif C is None and N_vec is None:
         raise Exception("If providing a per capita matrix, a population vector is needed")
-    elif gamma == -1:
-        raise Exception("Provide a value for gamma")
+    elif gamma < -1:
+        raise Exception("Provide a value for gamma (must be non-negative)")
     
     if C is None:
         C = np.zeros(np.shape(P))
@@ -203,9 +211,11 @@ def initial_reproduction_number(C = None, P = None,N_vec_vacc=None,N_vec = None,
 
 
 def population_examples(k):
+    '''A function to return that returns a example population for an input between
+    0 and 4.'''
     
     if k==4:
-        print('population_examples: changed k call from 4 to 3')
+        # print('population_examples: changed k call from 4 to 3')
         k=3
     
     if k==0:
@@ -417,7 +427,7 @@ def SEIR_model(t,SEIR, beta, sigma, gamma, imm_decay_rate=0, is_per_capita_conta
     E=SEIR[(2*len(SEIR)//6):(3*len(SEIR)//6)]
     I=SEIR[(3*len(SEIR)//6):(4*len(SEIR)//6)]
     R=SEIR[(4*len(SEIR)//6):(5*len(SEIR)//6)]
-    In=SEIR[(5*len(SEIR)//6):]
+    # In=SEIR[(5*len(SEIR)//6):]
     ### Equations
     S_to_E = (beta *S).T @ I
     Sv_to_S = Sv * imm_decay_rate
@@ -441,17 +451,21 @@ def scenario_parameters(k):
     '''Takes as input a value k and returns a population matrix,
     relative ethnic contact rates, and age contact rates'''
     
-    # removing redundancy in scenarios
+    # removing redundancy in scenarios as scenarios 1-5 were removed and replaced with sceanrios 6-10
     if k <=4:
         k +=5
     
+    # Grab population of example
     population_matrix = population_examples(k%5)
     
+    # set relative contact rates, this if statment is redundent at this point as k > 4 at all times
+    # this wwas left in case it was needed again
     if k // 5 == 0:
         relative_ethnic_contact_rates = np.ones(2)
     else:
         relative_ethnic_contact_rates = np.array([1,2])
     
+    # specific age contact rates for scenario 5 (k==4)
     if k == 4 or k==9:
         age_contact_rates = np.linspace(1,0.5,5)
         age_contact_rates = age_contact_rates * np.sum(population_matrix) /np.sum(np.sum(population_matrix,axis=1)*age_contact_rates)

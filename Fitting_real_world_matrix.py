@@ -14,15 +14,16 @@ import multi_factor_matrix_modules.modules as mfmm
 import matplotlib.pyplot as plt
 from cycler import cycler
 
-plot_colors = ['#12436D', '#28A197', '#9E1962', '#F46A25','#D21D1D']
+# plot_colors = ['#12436D', '#28A197', '#9E1962', '#F46A25','#D21D1D']
+plot_colors = ['#332288', '#117733','#AA4499','#882255','#88CCEE']
 plt.rc('axes', prop_cycle=cycler(color=plot_colors))
 
 
 # Get population structure
-N = np.genfromtxt('age_ethnicity_population_structure.csv', delimiter=',', dtype='int32',skip_header=1,usecols=(1,2,3,4))
+N = np.genfromtxt('data/age_ethnicity_population_structure.csv', delimiter=',', dtype='int32',skip_header=1,usecols=(1,2,3,4))
 
 # Get age based contact matrix
-C_age = np.genfromtxt('contact_matrix_NZ.csv', delimiter=',',skip_header=True).T
+C_age = np.genfromtxt('data/contact_matrix_NZ.csv', delimiter=',',skip_header=True).T
 
 # Pick ethnic assortativity and relative contact rates from previous paper - https://doi.org/10.1080/29937574.2025.2591407
 # These are rough estimates of the 50% CAR assorative rates from this paper
@@ -37,23 +38,21 @@ sigma = 1/3 # Rate of disease development, E --> I
 time = 200 # time to run SEIOR model
 q = 0.03 # susceptibility of population
 
-C_age = q* C_age
-
 # Construct age_eth matrix
+C_age = q* C_age
 C = mfmm.return_C_matrix(epsilon,C_age,F, N)
 
 
 # Convert C_matrix to per capita
 beta_matrix = mfmm.flatten_to_two_dim(C,axis=1) / (N).flatten() 
 
-
+# Run SEIR model with matrix
 age_ethnic_solution = scipy.integrate.solve_ivp(mfmm.SEIR_model, [0,time],
                 np.concatenate(mfmm.initial_group_populations(N,is_vacc=False,pop_vec_vacc=np.array([]),initial_exposed=0.0001)),
                 t_eval=np.arange(time+1), args = (beta_matrix, sigma, gamma))
 
-
+# Find matrix and run SEIR model with only age
 beta_matrix_age = C_age/np.sum(N,axis=1)
-
 time_scale_factor = 1
 age_solution = scipy.integrate.solve_ivp(mfmm.SEIR_model, [0,(time_scale_factor*time)],
                 np.concatenate(mfmm.initial_group_populations(np.sum(N,axis=1),is_vacc=False,pop_vec_vacc=np.array([]),initial_exposed=0.0001)),
@@ -65,24 +64,23 @@ for i in range(np.shape(N)[0]):
     for a in range(np.shape(N)[1]):
         C_eth[a,:] += np.sum(C[i,a,:,:]*N[i,a],axis=0) / np.sum(N[:,a])
 
-
+# Find matrix and run SEIR model with only eth
 beta_matrix_eth = C_eth/np.sum(N,axis=0)
-
 eth_solution = scipy.integrate.solve_ivp(mfmm.SEIR_model, [0,(time_scale_factor*time)],
                 np.concatenate(mfmm.initial_group_populations(np.sum(N,axis=0),is_vacc=False,pop_vec_vacc=np.array([]),initial_exposed=0.0001)),
                 t_eval=np.arange((time_scale_factor*time+1)), args = (beta_matrix_eth, sigma, gamma))
 
 
-# Construct age_eth matrix with every wthnic group having the same relative ethnic contact rate
+# Construct age_eth matrix with every ethnic group having the same relative ethnic contact rate
 C_same_rel_contact_rates = mfmm.return_C_matrix(epsilon,C_age,np.ones(4), N)
-# Convert C_matrix to per capita
+# Convert C_matrix to per capita and run SEIR model
 beta_matrix_same_rel_contact_rates = mfmm.flatten_to_two_dim(C_same_rel_contact_rates,axis=1) / (N).flatten() 
-
 age_ethnic_solution_same_rel_contact_rates = scipy.integrate.solve_ivp(mfmm.SEIR_model, [0,time],
                 np.concatenate(mfmm.initial_group_populations(N,is_vacc=False,pop_vec_vacc=np.array([]),initial_exposed=0.0001)),
                 t_eval=np.arange(time+1), args = (beta_matrix_same_rel_contact_rates, sigma, gamma))
 
 
+### Plot code
 eth_labels=['Maori','Pacific','Asian',"European/Other"]
 fig,axes = plt.subplots(1,2,figsize=(6.8*1.5,4.8*0.75),sharey=True)
 N_groups = np.prod(np.shape(N))
@@ -97,11 +95,29 @@ axes[1].set_xlim(0,time_scale_factor*time)
 axes[0].set_title('a)',loc='left')
 axes[1].set_title('b)',loc='left')
 axes[0].set_ylabel('Proportion of population')
-axes[0].legend(loc='upper left',title='age groups')
+leg = axes[0].legend(loc='upper left',title='age groups')
+for line in leg.get_lines():
+    line.set_linewidth(5.0)
 fig.text(0.513, 0, 'time (days)', ha='center')
-plt.xlabel('time (days)')
+# plt.xlabel('time (days)')
 plt.tight_layout()
 plt.savefig('images/ethnic_recovered_population_demographic_expansion.png', dpi=300, bbox_inches='tight')
+
+fig,axes = plt.subplots(1,1,figsize=(6.8,4.8))
+N_groups = np.prod(np.shape(N))
+for i in range(4):
+    if True:
+        axes.plot(np.sum(age_ethnic_solution.y[(N_groups*4+i):(N_groups*5):4,:],axis=0)/np.sum(N[:,i]), label=eth_labels[i], color=plot_colors[i])
+        axes.plot(np.sum(age_ethnic_solution_same_rel_contact_rates.y[(N_groups*4+i):(N_groups*5):4,:],axis=0)/np.sum(N[:,i]), linestyle='dashed', color=plot_colors[i])
+axes.set_ylim(0,1)
+axes.set_xlim(0,time_scale_factor*time)
+axes.set_ylabel('Proportion of population')
+axes.set_xlabel('time (days)')
+leg = axes.legend(loc='upper left',title='age groups')
+for line in leg.get_lines():
+    line.set_linewidth(5.0)
+plt.tight_layout()
+plt.savefig('images/ethnic_recovered_population_demographic_expansion_single_plot.png', dpi=300, bbox_inches='tight')
 
 
 fig,axes = plt.subplots(1,2,figsize=(6.8*1.5,4.8*0.75),sharey=True)
@@ -141,7 +157,7 @@ axes[0].set_title('a)',loc='left')
 axes[0].set_ylim(0,1)
 axes[0].set_xlim(0,time_scale_factor*time)
 axes[0].set_ylabel('Proportion of population')
-axes[0].legend(loc='upper left',title='age groups')
+leg = axes[0].legend(loc='upper left',title='age groups')
 fig.text(0.513, 0, 'time (days)', ha='center')
 plt.tight_layout()
 plt.savefig('images/age_recovered_population_demographic_expansion.png', dpi=300, bbox_inches='tight')
