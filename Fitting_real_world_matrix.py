@@ -4,7 +4,8 @@ Created on Tue Mar  3 10:42:57 2026
 
 @author: Vincent Lomas
 
-Numerical analysis of new contact matrix construction method - analysing real world example
+Numerical analysis of new contact matrix construction method - analysing POLYMOD
+projection of age matrix onto NZ
 """
 
 

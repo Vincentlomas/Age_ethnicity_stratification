@@ -57,3 +57,21 @@ mat_DB %>%
 
 # Save as csv
 write.csv(mat_DB, "../data/contact_matrix_NZ.csv", row.names = FALSE)
+
+labels <- seq(0,90,5)
+
+png("Social_contact_rate_plot.png", width = 6, height = 4, units = "in", res = 300)
+
+bp <- barplot(rowSums(mat),
+        main = "Social contact rate of age groups (NZ estimate)",
+        xlab = "Age group",
+        ylab = "Contact rate",
+        col = "#C00000",names.arg = rep("", length(labels)))
+
+# Add only every second label (1st, 3rd, 5th...)
+axis(1,
+     at = bp[seq(1, length(labels), by = 2)],
+     labels = labels[seq(1, length(labels), by = 2)])
+
+
+dev.off()

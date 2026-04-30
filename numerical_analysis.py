@@ -239,11 +239,11 @@ c = 0.3 # Age based assortativity
 
 is_save_figs = True
 
-is_plot_matrices = False
+is_plot_matrices = True
 is_plot_SEIR = False
 
 is_run_relative_contact_rate_variance = False
-is_plot_relative_contact_rate_variance = True
+is_plot_relative_contact_rate_variance = False
 
 is_run_transmission_variance = False
 is_plot_transmission_variance = False
@@ -296,29 +296,18 @@ mfmm.condition_checking_fixed(C_constructed, Cij_k, N)
 
 # Heat plot of matrices
 if is_plot_matrices:
-    fig, axes = plt.subplots(2, num_matrices//2, figsize=(22, 8))
-    axes = axes.flatten()
     vmin=0
     vmax=np.max(C_storage_list)
-    for i, C_matrix in enumerate(C_storage_list):
-        im = axes[i].imshow(mfmm.flatten_to_two_dim(C_matrix),vmin=vmin, vmax=vmax,cmap='viridis', aspect='auto')
-        axes[i].set_title(f'{"abcdefghijklmnop"[i]})')
-        # Turn off ticks
-        axes[i].set_xticks([])
-        axes[i].set_yticks([])
-    
-    cbar = fig.colorbar(im, ax=axes, orientation='vertical', fraction=0.02, pad=0.04)
-    cbar.set_label('Contact rate')
-    plt.show()
-    
     fig, axes = plt.subplots(2, (num_matrices//2), figsize=(22, 8))
     axes = axes.flatten()
     for i, C_matrix in enumerate(C_storage_list):
         im = axes[i].imshow(mfmm.flatten_to_two_dim(C_matrix)/np.max(C_matrix),vmin=vmin, vmax=1,cmap='viridis', aspect='auto')
-        axes[i].set_title(f'{"abcdefghijklmnop"[i]})', loc='left', fontsize=16)
+        axes[i].set_title(f'{"abcdefghijkl"[i]}) Scenario {"12345"[i%5]}', loc='left', fontsize=16)
         # Turn off ticks
         axes[i].set_xticks([])
         axes[i].set_yticks([])
+        if not (i%5):
+            axes[i].set_ylabel(f'{["Equal", "Unequal"][i//5]} contact rates', fontsize=16)
         
     cbar = fig.colorbar(im, ax=axes, orientation='vertical', fraction=0.02, pad=0.04)
     cbar.set_label('Contact rate')
