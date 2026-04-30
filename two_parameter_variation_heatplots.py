@@ -69,7 +69,7 @@ def heatplot(scenario_num,socio_demo_assortativity_res, socio_demo_contact_ratio
     epsilon_age= 0.3
     
     
-    ### Iterate over each relative ethnic rate ratio and assortativity rate and construct a matrix
+    ### Iterate over each relative socio-demographic rate ratio and assortativity rate and construct a matrix
     for socio_demo_rel_idx in range(socio_demo_contact_ratio_res):
         F= np.array([1,2**((socio_demo_rel_idx-3)/2)])
         Pij = np.zeros([num_age_groups,num_age_groups])
@@ -192,22 +192,21 @@ im = heatplot(5, socio_demo_assortativity_res, socio_demo_contact_ratio_res,axes
          has_ylabel=False, has_color_bar=False,is_savefig=False,
          return_plot_instance=True, title_loc='left',z_min=min_val,z_max=max_val)
 heatplot(1, socio_demo_assortativity_res, socio_demo_contact_ratio_res,axes=axs[0,1],
-         custom_title="b) Scenario 1, ethnic group 1",has_xlabel=False, has_color_bar=False,
+         custom_title="b) Scenario 1, group 1",has_xlabel=False, has_color_bar=False,
          is_savefig=False, socio_demographic_group=1,z_min=min_val,z_max=max_val,has_x_tick_labels=False,
          has_ylabel=False, has_y_tick_labels=False,title_loc='left')
 heatplot(1, socio_demo_assortativity_res, socio_demo_contact_ratio_res,axes=axs[0,2],
-         custom_title="c) Scenario 1, ethnic group 2",has_xlabel=False, has_color_bar=False,
+         custom_title="c) Scenario 1, group 2",has_xlabel=False, has_color_bar=False,
          is_savefig=False, socio_demographic_group=2,z_min=min_val,z_max=max_val,has_y_tick_labels=False,
          has_x_tick_labels=False,has_ylabel=False, title_loc='left')
 heatplot(5, socio_demo_assortativity_res, socio_demo_contact_ratio_res,axes=axs[1,1],
-         custom_title="e) Scenario 5, ethnic group 1", has_xlabel=False,has_y_tick_labels=False,
+         custom_title="e) Scenario 5, group 1", has_xlabel=False,has_y_tick_labels=False,
          has_ylabel=False, has_color_bar=False,is_savefig=False, socio_demographic_group=1,
          z_min=min_val,z_max=max_val, title_loc='left')
 im = heatplot(5, socio_demo_assortativity_res, socio_demo_contact_ratio_res,axes=axs[1,2],
-         custom_title="f) Scenario 5, ethnic group 2", has_y_tick_labels=False,has_xlabel=False,
+         custom_title="f) Scenario 5, group 2", has_y_tick_labels=False,has_xlabel=False,
          has_ylabel=False, has_color_bar=False,is_savefig=False, return_plot_instance=True,
          socio_demographic_group=2,z_min=min_val,z_max=max_val, title_loc='left')
-#plt.xlabel('Ethnic assortativity')
 plt.tight_layout()
 fig.subplots_adjust(right=0.812,bottom=0.105,left=0.10)
 fig.text(0.447, 0.04, 'Socio-demographic assortativity', ha='center')
