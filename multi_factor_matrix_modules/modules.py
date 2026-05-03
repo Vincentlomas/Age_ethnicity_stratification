@@ -4,9 +4,9 @@ Created on Fri Jul 18 11:05:40 2025
 
 @author: Vincent Lomas
 
-Synthetic dataset
-
-Check supp - https://www.science.org/doi/full/10.1126/sciadv.adk4606
+A file containing modules used in multiple files for the paper:
+    'A method for including socio-demographic factors in social contact
+    matrices for compartment-based epidemic models'
 """
 
 import numpy as np
