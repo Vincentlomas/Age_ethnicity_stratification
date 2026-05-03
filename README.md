@@ -17,7 +17,7 @@ cycler
 
 
 # Summary
-These files contain code to extend a social contact matrix with an additional socio-demographic factor. This extended social contact matrix is then used to run various SEIR simulations which the final epidemic states (and reproductive number) is then plotted for use in the above paper. The R code file "POLYMOD_projection_contact_matrix.R" projects the POLYMOD study's social contact matrix onto NZ's age sturcute. Furthur details are present in the paper.
+These files contain code to extend a social contact matrix with an additional socio-demographic factor. This extended social contact matrix is then used to run various SEIR simulations which the final epidemic states (and reproductive number) is then plotted for use in the above paper. The R code file "POLYMOD_projection_contact_matrix.R" projects the POLYMOD study's social contact matrix onto NZ's age sturcute. Further details are present in the paper.
 
 # File structure
 ```
@@ -45,4 +45,12 @@ These files contain code to extend a social contact matrix with an additional so
     - modules.py                                # modules used in multiple other files (currently or in the past) and others that are integral to the method
   - POLYMOD_projection/
     - POLYMOD_projection_contact_matrix.R       # R code used to project the POLYMOD results on NZ to get a social contact matrix
+```
+
+
+# Citation
+If you cite this, please cite it as:
+```
+Lomas, V. X., Chambers, T., Watson, L. M., Plank, M. (2026). A method for including socio-demographic
+factors in social contact matrices for compartment-based epidemic models [Journal TBD].
 ```
