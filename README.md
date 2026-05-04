@@ -48,7 +48,7 @@ These files contain code to extend a social contact matrix with an additional so
 ```
 
 # Contact
-If you have any question, ploease email vincent.lomas@pg.canterbury.ac.nz
+If you have any question, please email vincent.lomas@pg.canterbury.ac.nz
 
 # Citation
 If you cite this, please cite it as:
