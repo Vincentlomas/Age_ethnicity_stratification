@@ -47,6 +47,8 @@ These files contain code to extend a social contact matrix with an additional so
     - POLYMOD_projection_contact_matrix.R       # R code used to project the POLYMOD results on NZ to get a social contact matrix
 ```
 
+# Contact
+If you have any question, ploease email vincent.lomas@pg.canterbury.ac.nz
 
 # Citation
 If you cite this, please cite it as:
