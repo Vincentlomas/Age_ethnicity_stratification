@@ -14,15 +14,14 @@ import multi_factor_matrix_modules.modules as mfmm
 import scipy
 import seaborn as sns
 
-is_generate_results = False
-is_plot = True
+is_hold_R0_const = True
 is_savefig = True
 
 def heatplot(scenario_num,socio_demo_assortativity_res, socio_demo_contact_ratio_res,z_min=0.4,
              z_max=0.6, custom_title=None,has_xlabel=True, has_ylabel=True,
              has_y_tick_labels=True,has_x_tick_labels=True, has_color_bar=True,
              is_savefig=True, axes=None, return_plot_instance = False,
-             socio_demographic_group=None, title_loc = 'center'):
+             socio_demographic_group=None, title_loc = 'center',R0=1.5,is_hold_R0_const=False):
     '''Function that plots a heat plot of the SEIR model final attack rate given 
     a scenario number and some parameter values.
     
@@ -58,6 +57,8 @@ def heatplot(scenario_num,socio_demo_assortativity_res, socio_demo_contact_ratio
             of the whole population, if 1 or 2, plots the attack rate of the 
             respective socio-demographic group
         title_loc: str. the location of the title.
+        R0: float. The basic reproductive number of the age matrix
+        is_hold_R0_const: boolean. if True forces extended matrix to have same R0
         '''
     # Grab information about scenarios
     N,F,a = mfmm.scenario_parameters(scenario_num-1)
@@ -66,6 +67,10 @@ def heatplot(scenario_num,socio_demo_assortativity_res, socio_demo_contact_ratio
     # Make the social contact matrix storage array
     C_matrices = np.zeros([socio_demo_contact_ratio_res, socio_demo_assortativity_res, num_age_groups, num_socio_demographic_groups, num_age_groups, num_socio_demographic_groups])
     
+    # Speicfy SEIR model parameters
+    time = 300
+    gamma = 2/3
+    sigma = 1
     epsilon_age= 0.3
     
     
@@ -82,17 +87,19 @@ def heatplot(scenario_num,socio_demo_assortativity_res, socio_demo_contact_ratio
         Cij_k = np.zeros([num_age_groups,num_age_groups])
         for j in range(num_age_groups):
             Cij_k[:,j] = Pij[:,j] * np.sum(N[j,:])
+        # Making all scenarios have the same R0 initially
+        Cij_k = R0 * Cij_k / mfmm.initial_reproduction_number(Cij_k, gamma = gamma)
         
         for socio_demo_idx in range(socio_demo_assortativity_res):
             epsilon_eth = socio_demo_idx / (socio_demo_assortativity_res -1)
             C_constructed = mfmm.return_C_matrix(epsilon_eth,Cij_k,F, N)
             
+            # Force constructed matrix to have basic reproduction number
+            if is_hold_R0_const:
+                C_constructed = R0*C_constructed/mfmm.initial_reproduction_number(mfmm.flatten_to_two_dim(C_constructed), gamma = gamma)
+            
             C_matrices[socio_demo_rel_idx, socio_demo_idx,:,:,:,:] = C_constructed
     
-    # Speicfy SEIR model parameters
-    time = 300
-    gamma = 2/3
-    sigma = 1
     # attack rate matrix has shape (2,socio_demo_res,socio_demo_assort_res), the 2 is to store results for both socio-demographic groups
     attack_rate_matrix = np.zeros([2,socio_demo_contact_ratio_res, socio_demo_assortativity_res])
     ### Running SEIR model
@@ -153,7 +160,7 @@ def heatplot(scenario_num,socio_demo_assortativity_res, socio_demo_contact_ratio
         axes.set_title(custom_title,loc=title_loc)
     
     if has_xlabel:
-        axes.set_xlabel("Socio-demographic assortativity")
+        axes.set_xlabel("Ethnic assortativity")
     if has_ylabel:
         axes.set_ylabel("Relative contact rate ratio",labelpad=25)
     
@@ -186,34 +193,37 @@ max_val=1
 heatplot(1, socio_demo_assortativity_res, socio_demo_contact_ratio_res,axes=axs[0,0],
          custom_title="a) Scenario 1",has_xlabel=False, has_color_bar=False,
          is_savefig=False, title_loc='left',z_min=min_val,z_max=max_val,
-         has_x_tick_labels=False,has_ylabel=False)
+         has_x_tick_labels=False,has_ylabel=False,is_hold_R0_const=is_hold_R0_const)
 im = heatplot(5, socio_demo_assortativity_res, socio_demo_contact_ratio_res,axes=axs[1,0],
          custom_title="d) Scenario 5",has_xlabel=False,
          has_ylabel=False, has_color_bar=False,is_savefig=False,
-         return_plot_instance=True, title_loc='left',z_min=min_val,z_max=max_val)
+         return_plot_instance=True, title_loc='left',z_min=min_val,z_max=max_val,is_hold_R0_const=is_hold_R0_const)
 heatplot(1, socio_demo_assortativity_res, socio_demo_contact_ratio_res,axes=axs[0,1],
          custom_title="b) Scenario 1, group 1",has_xlabel=False, has_color_bar=False,
          is_savefig=False, socio_demographic_group=1,z_min=min_val,z_max=max_val,has_x_tick_labels=False,
-         has_ylabel=False, has_y_tick_labels=False,title_loc='left')
+         has_ylabel=False, has_y_tick_labels=False,title_loc='left',is_hold_R0_const=is_hold_R0_const)
 heatplot(1, socio_demo_assortativity_res, socio_demo_contact_ratio_res,axes=axs[0,2],
          custom_title="c) Scenario 1, group 2",has_xlabel=False, has_color_bar=False,
          is_savefig=False, socio_demographic_group=2,z_min=min_val,z_max=max_val,has_y_tick_labels=False,
-         has_x_tick_labels=False,has_ylabel=False, title_loc='left')
+         has_x_tick_labels=False,has_ylabel=False, title_loc='left',is_hold_R0_const=is_hold_R0_const)
 heatplot(5, socio_demo_assortativity_res, socio_demo_contact_ratio_res,axes=axs[1,1],
          custom_title="e) Scenario 5, group 1", has_xlabel=False,has_y_tick_labels=False,
          has_ylabel=False, has_color_bar=False,is_savefig=False, socio_demographic_group=1,
-         z_min=min_val,z_max=max_val, title_loc='left')
+         z_min=min_val,z_max=max_val, title_loc='left',is_hold_R0_const=is_hold_R0_const)
 im = heatplot(5, socio_demo_assortativity_res, socio_demo_contact_ratio_res,axes=axs[1,2],
          custom_title="f) Scenario 5, group 2", has_y_tick_labels=False,has_xlabel=False,
          has_ylabel=False, has_color_bar=False,is_savefig=False, return_plot_instance=True,
-         socio_demographic_group=2,z_min=min_val,z_max=max_val, title_loc='left')
+         socio_demographic_group=2,z_min=min_val,z_max=max_val, title_loc='left',is_hold_R0_const=is_hold_R0_const)
 plt.tight_layout()
 fig.subplots_adjust(right=0.812,bottom=0.105,left=0.10)
-fig.text(0.447, 0.04, 'Socio-demographic assortativity', ha='center')
+fig.text(0.447, 0.04, 'Ethnic assortativity', ha='center')
 fig.text(0.05, 0.41, 'Relative contact rate ratio', ha='center', rotation='vertical')
 cbar_ax = fig.add_axes([0.825, 0.15, 0.025, 0.7])
 norm = matplotlib.colors.Normalize(vmin=0, vmax=1)
 cbar = fig.colorbar(matplotlib.cm.ScalarMappable(norm=norm, cmap='viridis'),cax=cbar_ax,label='Attack rate (%)')
 cbar.set_ticks(np.linspace(min_val,max_val,5))
 cbar.set_ticklabels(np.linspace(min_val*100,max_val*100,5).astype(int))
-plt.savefig('images/heatplots/rel_contact_rate_vs_socio_demo_epsilon/rel_contact_rate_vs_socio_demo_epsilon_all_comparision.png', dpi=300,bbox_inches='tight')
+if is_hold_R0_const:
+    plt.savefig('images/heatplots/rel_contact_rate_vs_socio_demo_epsilon/const_R0_rel_contact_rate_vs_socio_demo_epsilon_all_comparision.png', dpi=300,bbox_inches='tight')
+else:
+    plt.savefig('images/heatplots/rel_contact_rate_vs_socio_demo_epsilon/rel_contact_rate_vs_socio_demo_epsilon_all_comparision.png', dpi=300,bbox_inches='tight')

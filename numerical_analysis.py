@@ -49,8 +49,8 @@ def legend_with_extra(solid_name,dashed_name, solid_line=None, dashed_line=None,
 def variance_plot(x_vals, variance_array,scenarios_to_plot, x_axis_title,
                   y_axis_title, num_matrices, num_ethnic_groups, num_age_groups,
                   is_save_fig, filename =None, reproductive_numbers=None,is_xlog=False,
-                  is_line_at_1=False, is_horizontal_line_at_1=False):
-    '''Input:
+                  is_line_at_1=False, is_horizontal_line_at_1=False, ax1_y_label='Basic Reproductive Number'):
+    '''Inputs:
         x_vals: 1D array corresponding to xvalues used for plotting
         variance_array: Array of variance results of shape (number of scenarios,
             plot number, y values)
@@ -61,9 +61,10 @@ def variance_plot(x_vals, variance_array,scenarios_to_plot, x_axis_title,
         y_axis_title: Title of y axis
         is_save_fig: Boolean, True when saving plots, False if not
         is_xlog: boolean, True if x axis logged on plots
-    
+        ax1_y_label: (str) default of 'Basic Reproductive Number'. the y-label 
+            of the top-left most panel
     Outputs:
-        A series of plots about matrices used in the paper
+        (None) A series of plots about matrices used in the paper
     '''
     
     fig, axes = plt.subplots(2,2,figsize=(12,8))
@@ -98,7 +99,7 @@ def variance_plot(x_vals, variance_array,scenarios_to_plot, x_axis_title,
             axes[0,0].set_xticks(2.0**np.arange(min_2_pwr,max_2_pwr+1,1),labels=tick_labels)
             axes[0,0].get_xaxis().set_tick_params(which='minor', size=0)
             axes[0,0].get_xaxis().set_tick_params(which='minor', width=0) 
-        axes[0,0].set_ylabel('Basic Reproductive Number')
+        axes[0,0].set_ylabel(ax1_y_label)
         axes[0,0].set_xlim(min(x_vals),max(x_vals))
     else:
         primary_plot_idx = 0
@@ -218,10 +219,11 @@ num_ethnic_groups = 2
 num_age_groups =5
 
 # specifying some parameter values
-epsilon = 0.3
+epsilon = 0
 gamma = 2/3
 sigma = 1/3 # Rate of disease development
 time = 300
+R0 = 1.5
 
 # specify the number of matrices, is mostly irrelevant, again may cause issues if changed due to code merging
 num_matrices = 10
@@ -239,11 +241,14 @@ c = 0.3 # Age based assortativity
 
 is_save_figs = True
 
-is_plot_matrices = True
+is_plot_matrices = False
 is_plot_SEIR = False
 
 is_run_relative_contact_rate_variance = False
 is_plot_relative_contact_rate_variance = False
+
+is_run_relative_contact_rate_variance_fixed_R0 = False
+is_plot_relative_contact_rate_variance_fixed_R0 = True
 
 is_run_transmission_variance = False
 is_plot_transmission_variance = False
@@ -272,6 +277,9 @@ for k in range(num_matrices):
     for j in range(num_age_groups):
         Cij_k[:,j] = Pij[:,j] * np.sum(N[j,:])
     
+    # Making all scenarios have the same R0 initially
+    Cij_k = R0 * Cij_k / mfmm.initial_reproduction_number(Cij_k, gamma = gamma)
+    
     if k ==0:
         Cij = Cij_k.copy()
     
@@ -298,19 +306,52 @@ mfmm.condition_checking_fixed(C_constructed, Cij_k, N)
 if is_plot_matrices:
     vmin=0
     vmax=np.max(C_storage_list)
-    fig, axes = plt.subplots(2, (num_matrices//2), figsize=(22, 8))
-    axes = axes.flatten()
-    for i, C_matrix in enumerate(C_storage_list):
-        im = axes[i].imshow(mfmm.flatten_to_two_dim(C_matrix)/np.max(C_matrix),vmin=vmin, vmax=1,cmap='viridis', aspect='auto')
-        axes[i].set_title(f'{"abcdefghijkl"[i]}) Scenario {"12345"[i%5]}', loc='left', fontsize=16)
-        # Turn off ticks
-        axes[i].set_xticks([])
-        axes[i].set_yticks([])
-        if not (i%5):
-            axes[i].set_ylabel(f'{["Equal", "Unequal"][i//5]} contact rates', fontsize=16)
+    fig = plt.figure(figsize=(22, 9))
+    gs = fig.add_gridspec(
+        nrows=2,
+        ncols=(num_matrices//2),
+        height_ratios=[1,1],
+        hspace=0.2,
+        wspace=0.1
+    )
+    
+    for i, gsi in enumerate(gs):
         
+        C_matrix = C_storage_list[i]
+        
+        # grab matrix to plot
+        C_matrix_to_plot = mfmm.flatten_to_two_dim(C_matrix)/np.max(C_matrix)
+        
+        # set up 2x2 region
+        sub_gs = gsi.subgridspec(2, 2, hspace=0.05, wspace=0.05)
+        for k in range(2):
+            for l in range(2):
+                axes = fig.add_subplot(sub_gs[k, l])
+                im = axes.imshow(C_matrix_to_plot[(l*5):((l+1)*5),(k*5):((k+1)*5)],vmin=vmin, vmax=1,cmap='viridis', aspect='auto')
+                # Turn off ticks
+                axes.set_xticks([])
+                axes.set_yticks([])
+                
+                if k == 1 and i//5:
+                    axes.set_xlabel(f'Ethnic group {l+1}', fontsize=14)
+                if l == 1 and (i% 5 == 4):
+                    axes.set_ylabel(f'Ethnic group {k+1}', fontsize=14)
+                    axes.yaxis.set_label_position("right")
+        # title
+        title_ax = fig.add_subplot(gsi)
+        title_ax.set_title(f'{"abcdefghijkl"[i]}) Scenario {"12345"[i%5]}', loc='left', fontsize=20)
+        title_ax.patch.set_visible(False)
+        title_ax.set_xticks([])
+        title_ax.set_yticks([])
+        for spine in title_ax.spines.values():
+            spine.set_visible(False)
+        if not (i%5):
+            title_ax.set_ylabel(f'{["Equal", "Unequal"][i//5]} contact rates', fontsize=20)
+    
+    axes = fig.add_axes([0.1, 0.1, 0.85, 0.8])
+    axes.set_axis_off()
     cbar = fig.colorbar(im, ax=axes, orientation='vertical', fraction=0.02, pad=0.04)
-    cbar.set_label('Contact rate')
+    cbar.set_label('Normalised contact rate', fontsize=16)
     if is_save_figs:
         plt.savefig(f'images/heatplot_matrix_comparison_epsilon_{epsilon}.png', dpi=300,bbox_inches='tight')
     plt.show()
@@ -435,7 +476,6 @@ if is_plot_SEIR:
     
 
 ### Change in relative contact rate
-
 if is_run_relative_contact_rate_variance:
     
     # Want this to be odd to have zero in linspace - not required
@@ -459,6 +499,9 @@ if is_run_relative_contact_rate_variance:
         Cij = np.zeros([num_age_groups,num_age_groups])
         for j in range(num_age_groups):
             Cij[:,j] = Pij[:,j] * np.sum(N[j,:])
+        
+        # Making all scenarios have the same R0 initially
+        Cij = R0 * Cij / mfmm.initial_reproduction_number(Cij, gamma = gamma)
         
         
         for k in range(resolution):
@@ -508,6 +551,87 @@ if is_plot_relative_contact_rate_variance:
                   num_age_groups=num_age_groups, is_save_fig = is_save_figs,
                   filename=f'relative_contact_rate_variation/relative_contact_rate_variation_eth_epsilon{epsilon}_age_epsilon_{c}',
                   reproductive_numbers=reproductive_numbers,is_xlog=True,is_line_at_1=True)
+
+
+
+
+if is_run_relative_contact_rate_variance_fixed_R0:
+    
+    # Want this to be odd to have zero in linspace - not required
+    resolution = 41
+    F_var_attack_rates = np.zeros([num_matrices//2,1+num_age_groups+num_ethnic_groups+num_age_groups*num_ethnic_groups, resolution])
+    prop_of_contacts_retained = np.zeros([num_matrices//2,resolution])
+    
+    F_vals = 10**np.linspace(-1, 1, resolution)
+    
+    for l in range(num_matrices//2):
+        
+        N,F,a = mfmm.scenario_parameters(l)
+        
+        Pij = np.zeros([num_age_groups,num_age_groups])
+        for i in range(num_age_groups):
+            for j in range(num_age_groups):
+                Pij[i,j] = (1-c)*a[i]*a[j]/np.sum(np.sum(N,axis=1)*a)
+                if i==j:
+                    Pij[i,j]+=c*a[j]/np.sum(N[j,:])
+                
+        Cij = np.zeros([num_age_groups,num_age_groups])
+        for j in range(num_age_groups):
+            Cij[:,j] = Pij[:,j] * np.sum(N[j,:])
+        
+        # Making all scenarios have the same R0 initially
+        Cij = R0 * Cij / mfmm.initial_reproduction_number(Cij, gamma = gamma)
+        
+        for k in range(resolution):
+            
+            # Specify ethnic contact rates and grab contact matrix
+            F = np.array([F_vals[k],1])
+            C = mfmm.return_C_matrix(epsilon,Cij,F, N)
+            
+            prop_of_contacts_retained[l,k] = R0/mfmm.initial_reproduction_number(mfmm.flatten_to_two_dim(C), gamma = gamma)
+            
+            mfmm.condition_checking_fixed(C, Cij, N,is_shorthand=True)
+            
+            # Set R0 to specified value
+            C = R0 * C * prop_of_contacts_retained[l,k] 
+            
+            # Convert C to per capita
+            beta_matrix = mfmm.flatten_to_two_dim(C) / (N.T).flatten()
+            solution = scipy.integrate.solve_ivp(mfmm.SEIR_model, [0,time],
+                            np.concatenate(mfmm.initial_group_populations((N.T).flatten(),is_vacc=False,pop_vec_vacc=np.array([]),initial_exposed=0.0001)),
+                            t_eval=np.arange(time+1), args = (beta_matrix, sigma, gamma))
+            
+            F_var_attack_rates[l,0,k] = np.sum(solution.y[50:,-1])/np.sum(N)
+            F_var_attack_rates[l,1,k] = np.sum(solution.y[50:55,-1])/np.sum(N[:,0])
+            F_var_attack_rates[l,2,k] = np.sum(solution.y[55:,-1])/np.sum(N[:,1])
+            for i in range(num_age_groups):
+                F_var_attack_rates[l,(3+i),k] = (solution.y[(50+i),-1]+solution.y[(55+i),-1])/np.sum(N[i,:])
+            for i in range(num_age_groups*num_ethnic_groups):
+                F_var_attack_rates[l,(8+i),k] = solution.y[(50+i),-1]/np.sum(N[i%num_age_groups,i//num_age_groups])
+    
+    np.save(f'generated_results/fixed_R0_ethnic_contact_ratio_variance_attack_rate_eth_epsilon{epsilon}_age_epsilon_{c}.npy', F_var_attack_rates)
+    np.save(f'generated_results/fixed_R0_ethnic_contact_ratio_variance_prop_of_contacts_retained_eth_epsilon{epsilon}_age_epsilon_{c}.npy', prop_of_contacts_retained)
+    np.save(f'generated_results/fixed_R0_ethnic_contact_ratio_variance_Fvals_eth_epsilon{epsilon}_age_epsilon_{c}.npy', F_vals)
+
+if is_plot_relative_contact_rate_variance_fixed_R0:
+    
+    F_var_attack_rates = np.load(f'generated_results/fixed_R0_ethnic_contact_ratio_variance_attack_rate_eth_epsilon{epsilon}_age_epsilon_{c}.npy')
+    prop_of_contacts_retained = np.load(f'generated_results/fixed_R0_ethnic_contact_ratio_variance_prop_of_contacts_retained_eth_epsilon{epsilon}_age_epsilon_{c}.npy')
+    F_vals = np.load(f'generated_results/fixed_R0_ethnic_contact_ratio_variance_Fvals_eth_epsilon{epsilon}_age_epsilon_{c}.npy')
+    
+    relative_contact_rate_scens =[]
+    
+    for scen in scenarios_to_plot:
+        if not scen in relative_contact_rate_scens:
+            relative_contact_rate_scens.append(scen)
+    
+    variance_plot(F_vals, 100* F_var_attack_rates,scenarios_to_plot=relative_contact_rate_scens,
+                  x_axis_title='Ratio of ethnic contact rates (F1/F2)',
+                  y_axis_title='Attack rates (%)',
+                  num_matrices=num_matrices, num_ethnic_groups=num_ethnic_groups,
+                  num_age_groups=num_age_groups, is_save_fig = is_save_figs,
+                  filename=f'relative_contact_rate_variation/const_R0_relative_contact_rate_variation_eth_epsilon{epsilon}_age_epsilon_{c}',
+                  reproductive_numbers=100*prop_of_contacts_retained,is_xlog=True,is_line_at_1=True,ax1_y_label="Relative magintude of transmission rate (%)")
     
 
 
@@ -539,6 +663,9 @@ if is_run_transmission_variance:
         Cij = np.zeros([num_age_groups,num_age_groups])
         for j in range(num_age_groups):
             Cij[:,j] = Pij[:,j] * np.sum(N[j,:])
+        
+        # Making all scenarios have the same R0 initially
+        Cij = R0 * Cij / mfmm.initial_reproduction_number(Cij, gamma = gamma)
         
         # Turn the age social contact matrix into the age-ethnicity matrix
         C = mfmm.return_C_matrix(epsilon,Cij,F, N)
@@ -589,7 +716,7 @@ if is_plot_transmission_variance:
                   reproductive_numbers=transmission_reprods,
                   filename = 'transmission_variation',is_horizontal_line_at_1=True)
     
-    
+
     
 
 if is_run_epsilon_variance:
@@ -615,6 +742,8 @@ if is_run_epsilon_variance:
         for j in range(num_age_groups):
             Cij[:,j] = Pij[:,j] * np.sum(N[j,:])
         
+        # Making all scenarios have the same R0 initially
+        Cij = R0 * Cij / mfmm.initial_reproduction_number(Cij, gamma = gamma)
         
         for k in range(resolution):
             
