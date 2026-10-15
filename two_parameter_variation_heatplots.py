@@ -14,7 +14,7 @@ import multi_factor_matrix_modules.modules as mfmm
 import scipy
 import seaborn as sns
 
-is_hold_R0_const = True
+is_hold_R0_const = False
 is_savefig = True
 
 def heatplot(scenario_num,socio_demo_assortativity_res, socio_demo_contact_ratio_res,z_min=0.4,
@@ -34,7 +34,7 @@ def heatplot(scenario_num,socio_demo_assortativity_res, socio_demo_contact_ratio
             ones own socio-demographic group
         socio_demo_contact_ratio_res: A positive int. A number determiining the
             resolution  (or number of point to consider) for the socio-demographic
-            relative contact rate ratio (or the magnitude difference between
+            Contact rate ratio (or the magnitude difference between
             the socio-demographic group social contact rates)
         z_min: A float between 0 and 1. the minimum value for the colormap/bar.
             A warning will be printed if there are any results lower than this bound.
@@ -42,7 +42,7 @@ def heatplot(scenario_num,socio_demo_assortativity_res, socio_demo_contact_ratio
             A warning will be printed if there are any results larger than this bound.
         custom_title: str or None. The title of the plot, if None there will be no title
         has_xlabel: boolean. If true will set the x-axis title to "Socio-demographic assortativity"
-        has_ylabel: boolean. If true will set the x-axis title to "Relative contact rate ratio"
+        has_ylabel: boolean. If true will set the x-axis title to "Contact rate ratio"
         has_y_tick_labels: boolean. If False it will supress y-tick labels on the plot.
         has_x_tick_labels:boolean. If False it will supress x-tick labels on the plot.
         has_color_bar: boolean. If turn will add a colour bar to the plot with 
@@ -162,7 +162,7 @@ def heatplot(scenario_num,socio_demo_assortativity_res, socio_demo_contact_ratio
     if has_xlabel:
         axes.set_xlabel("Ethnic assortativity")
     if has_ylabel:
-        axes.set_ylabel("Relative contact rate ratio",labelpad=25)
+        axes.set_ylabel("Contact rate ratio",labelpad=25)
     
     
     if np.min(matrix_to_plot) < z_min:
@@ -217,7 +217,7 @@ im = heatplot(5, socio_demo_assortativity_res, socio_demo_contact_ratio_res,axes
 plt.tight_layout()
 fig.subplots_adjust(right=0.812,bottom=0.105,left=0.10)
 fig.text(0.447, 0.04, 'Ethnic assortativity', ha='center')
-fig.text(0.05, 0.41, 'Relative contact rate ratio', ha='center', rotation='vertical')
+fig.text(0.05, 0.41, 'Contact rate ratio', ha='center', rotation='vertical')
 cbar_ax = fig.add_axes([0.825, 0.15, 0.025, 0.7])
 norm = matplotlib.colors.Normalize(vmin=0, vmax=1)
 cbar = fig.colorbar(matplotlib.cm.ScalarMappable(norm=norm, cmap='viridis'),cax=cbar_ax,label='Attack rate (%)')
